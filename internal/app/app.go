@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/andyfusniak/sitebuild/internal/site"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -16,13 +17,13 @@ type App struct {
 }
 
 // New creates a new app server.
-func New(port string) (*App, error) {
+func New(cfg *site.BuildConfig, port string) (*App, error) {
 	app := &App{
 		port: port,
 	}
 
 	// routing
-	app.router = app.routes()
+	app.router = app.routes(cfg)
 
 	return app, nil
 }

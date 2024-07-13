@@ -6,17 +6,23 @@ import (
 	"runtime"
 
 	"github.com/andyfusniak/sitebuild/internal/app"
+	"github.com/andyfusniak/sitebuild/internal/site"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
 // NewCmdServer creates a new server command. This command starts the web service.
-func NewCmdServer(version, gitcommit, defaultPort string) *cobra.Command {
+func NewCmdServer(version, gitcommit, siteBuildFile, defaultPort string) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "server",
-		Aliases: []string{"serve"},
+		Use:     "serve",
+		Aliases: []string{"server"},
 		Short:   "start the web service",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg, err := site.NewSiteBuildConfigFromFile(siteBuildFile)
+			if err != nil {
+				return err
+			}
+
 			// set up logging
 			defer func() {
 				log.Infof("[main] goodbye from sitebuild server version %s (%s)", version, gitcommit)
@@ -26,7 +32,7 @@ func NewCmdServer(version, gitcommit, defaultPort string) *cobra.Command {
 				version, gitcommit, runtime.Version(), runtime.GOOS, runtime.GOARCH)
 
 			// HTTP application server
-			app, err := app.New(defaultPort)
+			app, err := app.New(cfg, defaultPort)
 			if err != nil {
 				return err
 			}

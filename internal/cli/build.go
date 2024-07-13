@@ -1,13 +1,13 @@
 package cli
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 	"text/template"
 
+	"github.com/andyfusniak/sitebuild/internal/site"
 	"github.com/spf13/cobra"
 )
 
@@ -17,7 +17,7 @@ func NewCmdBuild(outputDir, siteBuildFile string) *cobra.Command {
 		Use:   "build",
 		Short: "builds the site",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg, err := readSiteBuildConfig(siteBuildFile)
+			cfg, err := site.NewSiteBuildConfigFromFile(siteBuildFile)
 			if err != nil {
 				return err
 			}
@@ -33,7 +33,7 @@ func NewCmdBuild(outputDir, siteBuildFile string) *cobra.Command {
 	return cmd
 }
 
-func generatePages(basePath, outputDir string, pages map[string]page) error {
+func generatePages(basePath, outputDir string, pages map[string]site.Page) error {
 	for outfile, p := range pages {
 		fmt.Printf("Generating page %s with URL %s\n", outfile, p.URL)
 		for _, s := range p.Sources {
@@ -78,31 +78,4 @@ func generateSinglePage(outfile string, sources []string) error {
 	}
 
 	return nil
-}
-
-type page struct {
-	URL     string   `json:"url"`
-	Sources []string `json:"sources"`
-}
-
-type siteBuildConfig struct {
-	BasePath string          `json:"basepath"`
-	Pages    map[string]page `json:"pages"`
-}
-
-func readSiteBuildConfig(fileName string) (*siteBuildConfig, error) {
-	f, err := os.Open(fileName)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	var cfg siteBuildConfig
-	decoder := json.NewDecoder(f)
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&cfg); err != nil {
-		return nil, fmt.Errorf("error decoding file %s: %w", fileName, err)
-	}
-
-	return &cfg, nil
 }

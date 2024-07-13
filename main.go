@@ -45,7 +45,7 @@ func run() error {
 		},
 	}
 	root.AddCommand(cli.NewCmdBuild(outputDir, siteBuildFile))
-	root.AddCommand(cli.NewCmdServer(version, gitCommit, defaultPort))
+	root.AddCommand(cli.NewCmdServer(version, gitCommit, siteBuildFile, defaultPort))
 
 	ctx := context.WithValue(context.Background(), cli.AppKey("app"), cliApp)
 	if err := root.ExecuteContext(ctx); err != nil {
