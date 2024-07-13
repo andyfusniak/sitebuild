@@ -26,7 +26,9 @@ func newHandler(sources []string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		tmpl, err := template.ParseFiles(sources...)
 		if err != nil {
-			log.Fatal(err)
+			log.Error("error parsing template files", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 
 		if err := tmpl.Execute(w, nil); err != nil {
