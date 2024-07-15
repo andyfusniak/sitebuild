@@ -3,6 +3,7 @@ package app
 import (
 	"html/template"
 	"net/http"
+	"os"
 	"path/filepath"
 
 	"github.com/andyfusniak/sitebuild/internal/site"
@@ -17,8 +18,17 @@ func (a *App) routes(cfg *site.BuildConfig) *http.ServeMux {
 		for _, s := range p.Sources {
 			sources = append(sources, filepath.Join(cfg.BasePath, s))
 		}
+
+		// root page is a special case
+		if p.URL == "/" {
+			staticFilesDir := filepath.Join(cfg.BasePath, "static")
+			mux.Handle(p.URL, customRootHandler(newHandler(sources), staticFilesDir))
+			continue
+		}
+
 		mux.Handle(p.URL, newHandler(sources))
 	}
+
 	return mux
 }
 
@@ -34,5 +44,26 @@ func newHandler(sources []string) http.Handler {
 		if err := tmpl.Execute(w, nil); err != nil {
 			log.Error("error executing template", err)
 		}
+	})
+}
+
+func customRootHandler(homePageHandler http.Handler, staticFilesDir string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Check if the request is specifically for the root ("/")
+		if r.URL.Path == "/" {
+			homePageHandler.ServeHTTP(w, r)
+			return
+		}
+
+		// Attempt to serve a static file for any other request
+		staticFilePath := filepath.Join(staticFilesDir, r.URL.Path)
+		if _, err := os.Stat(staticFilePath); err == nil {
+			http.ServeFile(w, r, staticFilePath)
+			return
+		}
+
+		// If the file does not exist, you can decide to serve a 404 page,
+		// redirect to the home page, or simply let the request fall through.
+		http.NotFound(w, r)
 	})
 }
