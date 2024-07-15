@@ -43,6 +43,8 @@ func newHandler(sources []string) http.Handler {
 
 		if err := tmpl.Execute(w, nil); err != nil {
 			log.Error("error executing template", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 	})
 }
