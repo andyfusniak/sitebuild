@@ -6,7 +6,7 @@ Sitebuild static site generator
 
 ```json
 {
-  "basepath": "src",
+  "sourceDir": "src",
   "pages": {
     "index.html": {
       "sources": ["layout.html", "home.html"],

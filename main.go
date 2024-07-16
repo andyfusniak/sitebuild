@@ -45,6 +45,7 @@ func run() error {
 		},
 	}
 	root.AddCommand(cli.NewCmdBuild(destDir, siteBuildFile))
+	root.AddCommand(cli.NewCmdGenRoutes(destDir, siteBuildFile))
 	root.AddCommand(cli.NewCmdServer(version, gitCommit, siteBuildFile, defaultPort))
 
 	ctx := context.WithValue(context.Background(), cli.AppKey("app"), cliApp)
