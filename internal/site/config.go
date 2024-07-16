@@ -7,8 +7,8 @@ import (
 )
 
 type BuildConfig struct {
-	BasePath string          `json:"basepath"`
-	Pages    map[string]Page `json:"pages"`
+	SourceDir string          `json:"sourceDir"`
+	Pages     map[string]Page `json:"pages"`
 }
 
 type Page struct {

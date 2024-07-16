@@ -1,18 +1,12 @@
 package cli
 
 import (
-	"fmt"
-	"log"
-	"os"
-	"path/filepath"
-	"text/template"
-
 	"github.com/andyfusniak/sitebuild/internal/site"
 	"github.com/spf13/cobra"
 )
 
 // NewCmdBuild creates a new build command. This command builds the site.
-func NewCmdBuild(outputDir, siteBuildFile string) *cobra.Command {
+func NewCmdBuild(destDir, siteBuildFile string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "build",
 		Short: "builds the site",
@@ -22,7 +16,12 @@ func NewCmdBuild(outputDir, siteBuildFile string) *cobra.Command {
 				return err
 			}
 
-			if err := generatePages(cfg.BasePath, outputDir, cfg.Pages); err != nil {
+			site, err := site.NewSiteBuilder(destDir, cfg.SourceDir)
+			if err != nil {
+				return err
+			}
+
+			if err := site.GeneratePages(cfg.SourceDir, cfg.Pages); err != nil {
 				return err
 			}
 
@@ -31,51 +30,4 @@ func NewCmdBuild(outputDir, siteBuildFile string) *cobra.Command {
 	}
 
 	return cmd
-}
-
-func generatePages(basePath, outputDir string, pages map[string]site.Page) error {
-	for outfile, p := range pages {
-		fmt.Printf("Generating page %s with URL %s\n", outfile, p.URL)
-		for _, s := range p.Sources {
-			fmt.Printf("  - source: %s\n", s)
-		}
-
-		// add the base path to the outFile and each source
-		// files in the slice
-		var sources []string
-		for _, s := range p.Sources {
-			sources = append(sources, filepath.Join(basePath, s))
-		}
-		outfile = filepath.Join(outputDir, outfile)
-
-		if err := generateSinglePage(outfile, sources); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func generateSinglePage(outfile string, sources []string) error {
-	fmt.Printf("Generating page %s with sources %v\n", outfile, sources)
-
-	// parse html templates
-	tmpl, err := template.ParseFiles(sources...)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// create output file
-	f, err := os.Create(outfile)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	// execute template
-	if err := tmpl.Execute(f, nil); err != nil {
-		return fmt.Errorf("error executing template: %w", err)
-	}
-
-	return nil
 }

@@ -16,7 +16,7 @@ var (
 
 const (
 	siteBuildFile = "sitebuild.json"
-	outputDir     = "dist"
+	destDir       = "public"
 	defaultPort   = "7000"
 )
 
@@ -44,7 +44,7 @@ func run() error {
 			_ = v.(*cli.App)
 		},
 	}
-	root.AddCommand(cli.NewCmdBuild(outputDir, siteBuildFile))
+	root.AddCommand(cli.NewCmdBuild(destDir, siteBuildFile))
 	root.AddCommand(cli.NewCmdServer(version, gitCommit, siteBuildFile, defaultPort))
 
 	ctx := context.WithValue(context.Background(), cli.AppKey("app"), cliApp)

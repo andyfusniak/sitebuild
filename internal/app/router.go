@@ -16,12 +16,12 @@ func (a *App) routes(cfg *site.BuildConfig) *http.ServeMux {
 	for _, p := range cfg.Pages {
 		var sources []string
 		for _, s := range p.Sources {
-			sources = append(sources, filepath.Join(cfg.BasePath, s))
+			sources = append(sources, filepath.Join(cfg.SourceDir, s))
 		}
 
 		// root page is a special case
 		if p.URL == "/" {
-			staticFilesDir := filepath.Join(cfg.BasePath, "static")
+			staticFilesDir := filepath.Join(cfg.SourceDir, "static")
 			mux.Handle(p.URL, customRootHandler(newHandler(sources), staticFilesDir))
 			continue
 		}
