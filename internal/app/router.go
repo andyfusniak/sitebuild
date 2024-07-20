@@ -1,6 +1,8 @@
 package app
 
 import (
+	"encoding/json"
+	"fmt"
 	"html/template"
 	"net/http"
 	"os"
@@ -22,17 +24,21 @@ func (a *App) routes(cfg *site.BuildConfig) *http.ServeMux {
 		// root page is a special case
 		if p.URL == "/" {
 			staticFilesDir := filepath.Join(cfg.SourceDir, "static")
-			mux.Handle(p.URL, customRootHandler(newHandler(sources), staticFilesDir))
+			mux.Handle(p.URL, customRootHandler(newHandler(sources, p.DataSources), staticFilesDir))
 			continue
 		}
 
-		mux.Handle(p.URL, newHandler(sources))
+		mux.Handle(p.URL, newHandler(sources, p.DataSources))
 	}
 
 	return mux
 }
 
-func newHandler(sources []string) http.Handler {
+type vars struct {
+	Data map[string]any
+}
+
+func newHandler(sources, dataSources []string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		tmpl, err := template.ParseFiles(sources...)
 		if err != nil {
@@ -41,7 +47,26 @@ func newHandler(sources []string) http.Handler {
 			return
 		}
 
-		if err := tmpl.Execute(w, nil); err != nil {
+		var v vars
+
+		v.Data = make(map[string]any)
+		for _, ds := range dataSources {
+			var d any
+			if err := loadJSONFile(filepath.Join("data", ds), &d); err != nil {
+				log.Error("error loading JSON data", err)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			// strip the .json .whatever postfix from the file name
+			// leaving only the base name
+			name := filepath.Base(ds)
+			extension := filepath.Ext(name)
+			name = name[:len(name)-len(extension)]
+			v.Data[name] = d
+		}
+
+		if err := tmpl.Execute(w, v); err != nil {
 			log.Error("error executing template", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -68,4 +93,19 @@ func customRootHandler(homePageHandler http.Handler, staticFilesDir string) http
 		// redirect to the home page, or simply let the request fall through.
 		http.NotFound(w, r)
 	})
+}
+
+func loadJSONFile(fileName string, v interface{}) error {
+	f, err := os.Open(fileName)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	decoder := json.NewDecoder(f)
+	if err := decoder.Decode(v); err != nil {
+		return fmt.Errorf("error decoding file %s: %w", fileName, err)
+	}
+
+	return nil
 }
