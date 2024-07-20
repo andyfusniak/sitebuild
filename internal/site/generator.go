@@ -1,6 +1,7 @@
 package site
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -58,7 +59,7 @@ func (s *Site) GeneratePages(basePath string, pages map[string]Page) error {
 		}
 		outfile = filepath.Join(s.destDir, outfile)
 
-		if err := generateSinglePage(outfile, sources); err != nil {
+		if err := generateSinglePage(outfile, sources, p.DataSources); err != nil {
 			return err
 		}
 	}
@@ -70,8 +71,13 @@ func (s *Site) GeneratePages(basePath string, pages map[string]Page) error {
 	return nil
 }
 
-func generateSinglePage(outfile string, sources []string) error {
-	fmt.Printf("Generating page %s with sources %v\n", outfile, sources)
+type Vars struct {
+	Data map[string]any
+}
+
+func generateSinglePage(outfile string, sources, dataSources []string) error {
+	fmt.Printf("Generating page %s with sources %v and dataSources %v\n",
+		outfile, sources, dataSources)
 
 	// parse html templates
 	tmpl, err := template.ParseFiles(sources...)
@@ -86,8 +92,25 @@ func generateSinglePage(outfile string, sources []string) error {
 	}
 	defer f.Close()
 
+	var v Vars
+
+	v.Data = make(map[string]any)
+	for _, ds := range dataSources {
+		var d any
+		if err := loadJSONFile(filepath.Join("data", ds), &d); err != nil {
+			return err
+		}
+
+		// strip the .json .whatever postfix from the file name
+		// leaving only the base name
+		name := filepath.Base(ds)
+		extension := filepath.Ext(name)
+		name = name[:len(name)-len(extension)]
+		v.Data[name] = d
+	}
+
 	// execute template
-	if err := tmpl.Execute(f, nil); err != nil {
+	if err := tmpl.Execute(f, v); err != nil {
 		return fmt.Errorf("error executing template: %w", err)
 	}
 
@@ -166,4 +189,19 @@ func copyFile(src, dst string) error {
 
 	_, err = io.Copy(destFile, sourceFile)
 	return err
+}
+
+func loadJSONFile(fileName string, v interface{}) error {
+	f, err := os.Open(fileName)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	decoder := json.NewDecoder(f)
+	if err := decoder.Decode(v); err != nil {
+		return fmt.Errorf("error decoding file %s: %w", fileName, err)
+	}
+
+	return nil
 }

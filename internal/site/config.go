@@ -12,8 +12,9 @@ type BuildConfig struct {
 }
 
 type Page struct {
-	URL     string   `json:"url"`
-	Sources []string `json:"sources"`
+	URL         string   `json:"url"`
+	Sources     []string `json:"sources"`
+	DataSources []string `json:"dataSources"`
 }
 
 // NewSiteBuildConfigFromFile reads a site build configuration from a file.
