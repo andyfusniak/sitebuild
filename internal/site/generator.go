@@ -120,7 +120,7 @@ func generateSinglePage(outfile string, sources, dataSources []string) error {
 	}
 
 	// execute template
-	if err := tmpl.Execute(f, v); err != nil {
+	if err := tmpl.ExecuteTemplate(f, rootTemplateName, v); err != nil {
 		return fmt.Errorf("error executing template: %w", err)
 	}
 
