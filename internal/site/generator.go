@@ -9,6 +9,8 @@ import (
 	"os"
 	"path/filepath"
 	"text/template"
+
+	"github.com/andyfusniak/sitebuild/internal/funcs"
 )
 
 type Site struct {
@@ -76,11 +78,19 @@ type Vars struct {
 }
 
 func generateSinglePage(outfile string, sources, dataSources []string) error {
+	if len(sources) == 0 {
+		return fmt.Errorf("no template files provided for %s", outfile)
+	}
+
 	fmt.Printf("Generating page %s with sources %v and dataSources %v\n",
 		outfile, sources, dataSources)
 
+	rootTemplateName := filepath.Base(sources[0])
+	funcMap := template.FuncMap(funcs.FuncMap())
+
 	// parse html templates
-	tmpl, err := template.ParseFiles(sources...)
+	tmpl := template.New(rootTemplateName).Funcs(funcMap)
+	tmpl, err := tmpl.ParseFiles(sources...)
 	if err != nil {
 		log.Fatal(err)
 	}

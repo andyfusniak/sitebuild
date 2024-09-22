@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/andyfusniak/sitebuild/internal/funcs"
 	"github.com/andyfusniak/sitebuild/internal/site"
 	log "github.com/sirupsen/logrus"
 )
@@ -39,8 +40,26 @@ type vars struct {
 }
 
 func newHandler(sources, dataSources []string) http.Handler {
+	// get the global templates func from the funcs package
+	// and add it to the template.FuncMap
+	funcMap := template.FuncMap(funcs.FuncMap())
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		tmpl, err := template.ParseFiles(sources...)
+
+		// Ensure there is at least one source file
+		if len(sources) == 0 {
+			http.Error(w, "no template files provided", http.StatusInternalServerError)
+			return
+		}
+
+		rootTemplateName := filepath.Base(sources[0])
+
+		// parse the template files using the global funcMap
+
+		// tmpl, err := template.ParseFiles(sources...)
+
+		tmpl := template.New(rootTemplateName).Funcs(funcMap)
+		tmpl, err := tmpl.ParseFiles(sources...)
 		if err != nil {
 			log.Error("error parsing template files", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -66,7 +85,7 @@ func newHandler(sources, dataSources []string) http.Handler {
 			v.Data[name] = d
 		}
 
-		if err := tmpl.Execute(w, v); err != nil {
+		if err := tmpl.ExecuteTemplate(w, rootTemplateName, v); err != nil {
 			log.Error("error executing template", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
